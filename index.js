@@ -91,6 +91,13 @@ const run = async () => {
       const result = await bookCollection.findOne(query);
       res.send(result);
     });
+    
+    // add book
+    app.post("/books",verifyFBToken, async (req, res) => {
+      const newBook = req.body;
+      const result = await bookCollection.insertOne(newBook);
+      res.send(result);
+    });
    
 
     await client.db("admin").command({ ping: 1 });
