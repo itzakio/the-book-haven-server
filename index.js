@@ -111,6 +111,15 @@ const run = async () => {
       const result = await bookCollection.updateOne(query, update);
       res.send(result);
     });
+
+    
+    // delete book
+     app.delete("/books/:id",verifyFBToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookCollection.deleteOne(query);
+      res.send(result);
+    });
    
 
     await client.db("admin").command({ ping: 1 });
