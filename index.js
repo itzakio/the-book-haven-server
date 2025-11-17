@@ -98,6 +98,19 @@ const run = async () => {
       const result = await bookCollection.insertOne(newBook);
       res.send(result);
     });
+
+
+    // update book
+    app.put("/book/:id",verifyFBToken, async (req, res) => {
+      const id = req.params.id;
+      const updatedBook = req.body;
+      const query = { _id: new ObjectId(id) };
+      const update = {
+        $set: updatedBook
+      };
+      const result = await bookCollection.updateOne(query, update);
+      res.send(result);
+    });
    
 
     await client.db("admin").command({ ping: 1 });
