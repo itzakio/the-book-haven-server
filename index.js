@@ -71,50 +71,7 @@ const run = async () => {
       res.send(result);
     });
 
-    app.get("/latest-books", async (req, res) => {
-      console.log(req.query);
-      const email = req.query.email;
-      const query = {};
-      if (email) {
-        query.userEmail = email;
-      }
-      const result = await bookCollection.find(query).sort({created_at: -1}).limit(6).toArray();
-      res.send(result);
-    });
-
-    app.get("/books/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await bookCollection.findOne(query);
-      res.send(result);
-    });
-
-    // add book
-    app.post("/books",verifyFBToken, async (req, res) => {
-      const newBook = req.body;
-      const result = await bookCollection.insertOne(newBook);
-      res.send(result);
-    });
-
-    // update book
-    app.put("/book/:id",verifyFBToken, async (req, res) => {
-      const id = req.params.id;
-      const updatedBook = req.body;
-      const query = { _id: new ObjectId(id) };
-      const update = {
-        $set: updatedBook
-      };
-      const result = await bookCollection.updateOne(query, update);
-      res.send(result);
-    });
-
-    // delete book
-     app.delete("/books/:id",verifyFBToken, async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await bookCollection.deleteOne(query);
-      res.send(result);
-    });
+   
 
     await client.db("admin").command({ ping: 1 });
     console.log(
