@@ -71,6 +71,17 @@ const run = async () => {
       res.send(result);
     });
 
+     // latest books
+    app.get("/latest-books", async (req, res) => {
+      console.log(req.query);
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.userEmail = email;
+      }
+      const result = await bookCollection.find(query).sort({created_at: -1}).limit(6).toArray();
+      res.send(result);
+    });
    
 
     await client.db("admin").command({ ping: 1 });
