@@ -59,9 +59,9 @@ const run = async () => {
 
     const db = client.db("book_db");
     const bookCollection = db.collection("books");
+    const commentCollection = db.collection("comments");
 
-    app.get("/books", async (req, res) => {
-      console.log(req.query);
+    app.get("/books",verifyFBToken, async (req, res) => {
       const email = req.query.email;
       const query = {};
       if (email) {
@@ -120,6 +120,25 @@ const run = async () => {
       const result = await bookCollection.deleteOne(query);
       res.send(result);
     });
+
+    // add comments
+    app.post("/comments",verifyFBToken, async(req, res)=>{
+      const newComment = req.body;
+      const result = await commentCollection.insertOne(newComment);
+      res.send(result);
+    })
+
+    // get comments
+    app.get("/comments/:id",verifyFBToken, async (req, res) => {
+      const id = req.params.id;
+      const query = {};
+      if (id) {
+        query.bookId = id;
+      }
+      const result = await bookCollection.find(query).toArray();
+      res.send(result);
+    });
+
    
 
     await client.db("admin").command({ ping: 1 });
