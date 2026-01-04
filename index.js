@@ -15,21 +15,24 @@ admin.initializeApp({
 app.use(cors());
 app.use(express.json());
 
+
 const verifyFBToken = async (req, res, next) => {
   const authorization = req.headers.authorization;
   if (!authorization) {
-    return res.status(401).send({ message: "unauthorize access" });
+    return res.status(401).send({ message: "unauthorized access" });
   }
   const token = authorization.split(" ")[1];
   if (!token) {
-    return res.status(401).send({ message: "unauthorize access" });
+    return res.status(401).send({ message: "unauthorized access" });
   }
   try {
     const decoded = await admin.auth().verifyIdToken(token);
-    req.token_email = decoded.email;
-    // console.log("after token verification", decoded)
+    req.user = {
+      email: decoded.email,
+      uid: decoded.uid,
+    };
     next();
-  } catch {
+  } catch (error) {
     return res.status(401).send({ message: "unauthorized access" });
   }
 };
@@ -151,30 +154,28 @@ const run = async () => {
       }
     });
 
-    app.get("/my-books", verifyFBToken, async (req, res) => {
-      try {
-        const email = req.query.email;
-        const limit = parseInt(req.query.limit) || 0;
+ app.get("/my-books", verifyFBToken, async (req, res) => {
+  try {
+    const email = req.user.email;
 
-        const query = {};
+    const limit = parseInt(req.query.limit) || 0;
 
-        if (email) {
-          query.userEmail = email;
-        }
+    const cursor = bookCollection
+      .find({ userEmail: email }) 
+      .sort({ created_at: -1 });  
 
-        const cursor = bookCollection.find(query).sort({ created_at: -1 });
+    if (limit > 0) {
+      cursor.limit(limit);
+    }
 
-        if (limit > 0) {
-          cursor.limit(limit);
-        }
+    const result = await cursor.toArray();
+    res.send(result);
+  } catch (error) {
+    console.error("My books API error:", error);
+    res.status(500).send({ message: "Failed to fetch books" });
+  }
+});
 
-        const result = await cursor.toArray();
-        res.send(result);
-      } catch (error) {
-        console.error("My books API error:", error);
-        res.status(500).send({ message: "Failed to fetch books" });
-      }
-    });
 
     // latest books
     app.get("/latest-books", async (req, res) => {
@@ -308,10 +309,10 @@ const run = async () => {
       res.send(result);
     });
 
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
   }
 };

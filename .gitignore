@@ -1,4 +1,4 @@
 node_modules
-.env
 serviceKey.json
 .vercel
+config.bat
