@@ -152,16 +152,28 @@ const run = async () => {
     });
 
     app.get("/my-books", verifyFBToken, async (req, res) => {
-      const email = req.query.email;
-      const query = {};
-      if (email) {
-        query.userEmail = email;
+      try {
+        const email = req.query.email;
+        const limit = parseInt(req.query.limit) || 0;
+
+        const query = {};
+
+        if (email) {
+          query.userEmail = email;
+        }
+
+        const cursor = bookCollection.find(query).sort({ created_at: -1 });
+
+        if (limit > 0) {
+          cursor.limit(limit);
+        }
+
+        const result = await cursor.toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("My books API error:", error);
+        res.status(500).send({ message: "Failed to fetch books" });
       }
-      const result = await bookCollection
-        .find(query)
-        .sort({ created_at: 1 })
-        .toArray();
-      res.send(result);
     });
 
     // latest books
@@ -215,6 +227,66 @@ const run = async () => {
       res.send(result);
     });
 
+    // dashboard
+    app.get("/dashboard/stats", async (req, res) => {
+      try {
+        const { email } = req.query;
+
+        if (!email) {
+          return res.status(400).send({ message: "Email is required" });
+        }
+
+        // Total books in platform
+        const totalBooks = await bookCollection.countDocuments();
+
+        // Books added by this user
+        const myBooks = await bookCollection.countDocuments({
+          userEmail: email,
+        });
+
+        // Average rating (rating stored as string)
+        const avgRatingAgg = await bookCollection
+          .aggregate([
+            { $match: { userEmail: email } },
+            {
+              $addFields: {
+                ratingNum: { $toDouble: "$rating" },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                avgRating: { $avg: "$ratingNum" },
+              },
+            },
+          ])
+          .toArray();
+
+        const avgRating =
+          avgRatingAgg.length > 0 ? avgRatingAgg[0].avgRating : 0;
+
+        // Books added this month
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const thisMonth = await bookCollection.countDocuments({
+          userEmail: email,
+          created_at: { $gte: startOfMonth.toISOString() },
+        });
+
+        res.send({
+          totalBooks,
+          myBooks,
+          avgRating,
+          thisMonth,
+        });
+      } catch (error) {
+        console.error("Dashboard stats error:", error);
+        res.status(500).send({ message: "Failed to load dashboard stats" });
+      }
+    });
+
     // add comments
     app.post("/comments", verifyFBToken, async (req, res) => {
       const newComment = req.body;
@@ -236,7 +308,7 @@ const run = async () => {
       res.send(result);
     });
 
-    // await client.db("admin").command({ ping: 1 });
+    await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
